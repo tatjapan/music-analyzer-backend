@@ -9,3 +9,4 @@ redis                    # レート制限ミドルウェア
 python-dotenv            # 環境変数管理（開発時便利）
 python-multipart         # ファイルアップロードを含むPOSTリクエストを扱うときに必要なライブラリ
 pytest
+httpx
