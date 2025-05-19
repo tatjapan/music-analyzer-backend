@@ -1,0 +1,11 @@
+fastapi
+uvicorn       # ローカル開発サーバー用
+librosa                  # 音声解析
+numpy                    # librosaの依存
+ffmpeg-python            # ffmpeg操作用
+boto3                    # S3連携用
+mangum                   # AWS Lambda対応
+redis                    # レート制限ミドルウェア
+python-dotenv            # 環境変数管理（開発時便利）
+python-multipart         # ファイルアップロードを含むPOSTリクエストを扱うときに必要なライブラリ
+pytest
