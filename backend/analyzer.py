@@ -2,6 +2,7 @@ import librosa
 import numpy as np
 import subprocess
 import os
+from collections import Counter
 
 SHARP_TO_FLAT = {
     "C#": "Db", "D#": "Eb", "F#": "Gb", "G#": "Ab", "A#": "Bb"
@@ -34,18 +35,38 @@ def convert_to_wav(src_path: str) -> str:
     return wav_path
 
 def estimate_key(y, sr) -> str:
-    # クロマベクトル最大値＋音階系列によるメジャー/マイナー推定（簡易版）
-    # 精度向上には専用のキー推定ライブラリを利用
+    # クロマベクトル最大値＋音階系列によるメジャー/マイナー推定
 
     chroma = librosa.feature.chroma_stft(y=y, sr=sr)
     chroma_avg = np.mean(chroma, axis=1)
+
     major_keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
     minor_keys = ['Am', 'Bbm', 'Bm', 'Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m']
 
-    # クロマベクトルの最大値でメジャー or マイナーどちらかの系列を採用（超簡易判定）
-    key_idx = np.argmax(chroma_avg)
-    # このサンプルでは常にメジャー判定
-    key = major_keys[key_idx]
+    # 例えばメジャーコードテンプレート（I, III, V強調: C, E, G → index 0, 4, 7）
+    major_template = np.array([1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0])
+    minor_template = np.array([1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0])  # C, D#, G
+
+    # テンプレート生成（ローリング）: C→B, Am→G#m まで
+    major_similarities = []
+    minor_similarities = []
+
+    # メジャーキーとマイナーキー比較
+    for i in range(12):
+        rolled_major = np.roll(major_template, i)
+        rolled_minor = np.roll(minor_template, i)
+        major_similarities.append(np.dot(chroma_avg, rolled_major))
+        minor_similarities.append(np.dot(chroma_avg, rolled_minor))
+
+    # 最高スコアを取ったキーが推定値
+    max_major_idx = int(np.argmax(major_similarities))
+    max_minor_idx = int(np.argmax(minor_similarities))
+
+    # majorとminorどちらのスコアが高いか比べて採用値判定
+    if major_similarities[max_major_idx] >= minor_similarities[max_minor_idx]:
+        key = major_keys[max_major_idx]
+    else:
+        key = minor_keys[max_minor_idx]
 
     # フラット表記化
     key = sharp_to_flat(key)
@@ -62,8 +83,23 @@ def analyze_file(filepath:str) -> dict:
         tempo_value = float(tempo[0]) if len(tempo) > 0 else 0.0
     else:
         tempo_value = float(tempo)
-    # TODO: マイナー判定実装是非検討
-    key = estimate_key(y, sr)
+
+    # ここから支配的Keyを推定するコード
+    window_size_sec = 3 # ウィンドウ長（秒）
+    hop_sec = 1          # スライド間隔（秒）
+    duration = librosa.get_duration(y=y, sr=sr)
+    key_results = []
+    for start in np.arange(0, duration-window_size_sec, hop_sec):
+        y_window = y[int(start*sr):int((start+window_size_sec)*sr)]
+        if len(y_window) < int(0.5*sr): #0.5秒未満は無視
+            continue
+        key = estimate_key(y_window, sr)
+        key_results.append(key)
+    if key_results:
+        key = Counter(key_results).most_common(1)[0][0]
+    else:
+        key = estimate_key(y, sr)
+        
     camelot = KEY_TO_CAMELOT.get(key, "")
 
     if wav_path != filepath and os.path.exists(wav_path):

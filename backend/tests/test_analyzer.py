@@ -3,11 +3,11 @@ from analyzer import analyze_file
 
 def test_analyze_sample_mp3():
     # サンプルファイルのパス
-    sample_path = os.path.join(os.path.dirname(__file__), "../sample_data/sample_data.mp3")
+    sample_path = os.path.join(os.path.dirname(__file__), "../sample_data/sample_data1.mp3")
     sample_path = os.path.abspath(sample_path)
 
     # ファイルが存在することを確認
-    assert os.path.exists(sample_path), "sample_data.mp3が見つかりません"
+    assert os.path.exists(sample_path), "sample dataが見つかりません"
 
     # 解析処理の呼び出し
     result = analyze_file(sample_path)
