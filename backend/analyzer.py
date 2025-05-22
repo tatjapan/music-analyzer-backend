@@ -76,7 +76,7 @@ def estimate_key(y, sr) -> str:
 
 def analyze_file(filepath:str) -> dict:
     wav_path = convert_to_wav(filepath)
-    y, sr = librosa.load(filepath, sr=None, mono=True)
+    y, sr = librosa.load(wav_path, sr=None, mono=True)
     tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
     # tempoが配列の場合はfloat値として取り出す
     if isinstance(tempo, np.ndarray):
