@@ -8,19 +8,25 @@ router = APIRouter()
 
 @router.post("/analyze")
 async def analyze_audio(file: UploadFile = File(...)):
-    if file.content_type not in ["audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp3"]:
-        raise HTTPException(status_code=400, detail="Unsupported file type")
+    print(f"[DEBUG] Received file content_type: {file.content_type}")
+    if not file.content_type.startswith("audio/"):
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
+    # if file.content_type not in ["audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp3"]:
+    #     raise HTTPException(status_code=400, detail="Unsupported file type")
 
     tmp_path = None
+    print(f"[DEBUG] Temporary file saved to: {tmp_path}")
     try:
         # 一時ファイルとして保存
         suffix = os.path.splitext(file.filename)[-1]
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             shutil.copyfileobj(file.file, tmp)
             tmp_path = tmp.name
+            print(f"[DEBUG] Temporary file saved to: {tmp_path}")
 
         # 解析ロジックへ一時ファイルパスを渡す
         result = analyze_file(tmp_path)
+        print(f"[DEBUG] Temporary file saved to: {tmp_path}")
 
     except Exception as e:
         # エラー時は500を返す
